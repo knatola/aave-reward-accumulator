@@ -19,7 +19,7 @@ const singleRun = process.argv[2];
         console.error("Exception in config:", e);
         return;
     }
-    const loggableConfig = { ...configuration, walletPrivateKey: "***"};
+    const loggableConfig = { ...configuration, walletPrivateKey: "***" };
     console.log('Starting Aave reward accumulator...');
     console.log("configuration: ", loggableConfig);
     const getReserveTokenAddress = async (token: string): Promise<string> => {
@@ -36,6 +36,7 @@ const singleRun = process.argv[2];
 
     // Helper for creating erc 20 token approval tx
     const createApproveErcTransaction = async (amount: string, who: string, erc20Contract: any, erc20Address: string): Promise<object> => {
+        console.log(`Creating erc20 tx approval for amount: ${amount}, to who: ${who}, erc20Adress: ${erc20Address}`);
         const encodedTxData = erc20Contract.methods.approve(who, amount).encodeABI();
         const signedTx = await createSignedTransaction(encodedTxData, web3, configuration, erc20Address);
         return signedTx;
@@ -45,6 +46,7 @@ const singleRun = process.argv[2];
     const createSwapTransaction = async (inAmount: string, outAmount: string, addr1: string, addr2: string, deadline: number): Promise<object> => {
         const encodedTxData = quickSwapRouterContract.methods
             .swapExactTokensForTokens(inAmount, outAmount, [addr1, addr2], configuration.walletAddress, deadline).encodeABI();
+        console.log(`Creating swap tx for inAmount: ${inAmount}, to outAmount: ${outAmount}`);
         return await createSignedTransaction(encodedTxData, web3, configuration, configuration.exchangeRouterContract);
     }
 
@@ -58,6 +60,7 @@ const singleRun = process.argv[2];
     const createDepositTx = async (assetAddress: string, amount: string): Promise<object> => {
         const encodedTxData = lendingPoolContract.methods.deposit(assetAddress, amount, configuration.walletAddress, 0)
             .encodeABI();
+        console.log(`Creating deposit tx for amount: ${amount}, to assetAddress: ${assetAddress}`);
         return await createSignedTransaction(encodedTxData, web3, configuration, configuration.lendingPoolContractAddress);
     }
 
@@ -72,16 +75,17 @@ const singleRun = process.argv[2];
         return res;
     }
 
-    const mainSequence = async (): Promise<void> => {
+    const mainSequence = async (): Promise<string> => {
         // Main sequence to accumulate AAVE deposits
         // First claim rewards
         const claimTx = await createRewardsClaimTx(depositAtokenAddress, configuration);
         await sendSignedTransaction(claimTx, web3);
 
-        // Create erc20 approval to swap the reward tokens for depositable tokens
+        // Calculate needed values for the token swap
         const quote = await quickSwapRouterContract.methods.getAmountsOut(rewardsBalance, [awardTokenAddress, depositTokenAddress]).call();
         const amountOut = parseInt(quote[1]) - MIN_OUT_FIXER_AMOUNT;
         const deadline = Date.now() + 5 * MINUTE_IN_MILLIS;
+        // Create erc20 approval to swap the reward tokens for depositable tokens
         const approvalTx = await createApproveErcTransaction(rewardsBalance, configuration.exchangeRouterContract, awardTokenContract, awardTokenAddress);
         await sendSignedTransaction(approvalTx, web3);
 
@@ -97,6 +101,7 @@ const singleRun = process.argv[2];
         // Do deposit
         const depositTx = await createDepositTx(depositTokenAddress, rewardsTokenBalance);
         await sendSignedTransaction(depositTx, web3);
+        return rewardsTokenBalance;
 
     }
 
@@ -105,8 +110,8 @@ const singleRun = process.argv[2];
 
     // Contracts
     const incentivesContract = new web3.eth.Contract(incentivesABI as any, configuration.incentivesContract);
-    const dataProviderContract = new web3.eth.Contract(dataProviderABI as any , configuration.dataProviderContract);
-    const lendingPoolContract = new web3.eth.Contract(lendingPoolABI as any , configuration.lendingPoolContractAddress);
+    const dataProviderContract = new web3.eth.Contract(dataProviderABI as any, configuration.dataProviderContract);
+    const lendingPoolContract = new web3.eth.Contract(lendingPoolABI as any, configuration.lendingPoolContractAddress);
     const quickSwapFactoryContract = new web3.eth.Contract(factoryABI as any, configuration.exchangeFactoryAddress);
     const quickSwapRouterContract = new web3.eth.Contract(exchangeHelperABI as any, configuration.exchangeRouterContract);
 
@@ -130,8 +135,8 @@ const singleRun = process.argv[2];
             return await mainSequence();
         } else {
             console.log("Starting cron job");
-            cron.schedule(configuration.cronPattern, async () => {
-                await mainSequence();
+            cron.schedule(configuration.cronPattern, () => {
+                mainSequence().then(rewards => console.log(`Deposited ${rewards}`));
             });
         }
     } catch (e) {
@@ -146,7 +151,7 @@ const createSignedTransaction = async (encodedData: any, web3: Web3, configurati
     const gasPriceJsonRes = await axios.get("https://gasstation-mainnet.matic.network");
     const gasPriceJson = gasPriceJsonRes.data;
     const gasPriceAsGwei = gasPriceJson.standard;
-    const gasPrice = web3.utils.toWei(gasPriceAsGwei.toString(), "gwei").toString(); 
+    const gasPrice = web3.utils.toWei(gasPriceAsGwei.toString(), "gwei").toString();
     const hexGasLimit = web3.utils.toHex(gasLimit).toString();
     const hexGasPrice = web3.utils.toHex((parseInt(gasPrice)).toString());
 

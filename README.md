@@ -16,7 +16,8 @@ Every given time interval the software:
 
 - Claims your accrued aave incentive tokens (WMATIC in polygon)
 - Swaps these award tokens to the tokens you want to automatically deposit back to Aave (like USDT)
-- Deposits the swapped tokens (like USDT) to Aave lending pool
+- Deposits the swapped tokens (like USDT) to Aave lending pool  
+**Note: The total balance of your deposit tokens will be deposited. So even if you only had 1 USDT from swapped WMATIC rewards but your wallet has existing 10 USDT, the whole 11 USDT will be deposited**
 
 The faster you accrue the Aave awards tokens, the more frequently this sequence should happen and this frequency can be configured for this reason.
 
