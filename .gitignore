@@ -2,5 +2,9 @@
 .env
 .env.test
 .env.production
+
+events.csv
+
+.vscode
 node_modules/
 dist
