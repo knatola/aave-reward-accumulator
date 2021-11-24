@@ -32,7 +32,7 @@ export const getConfig = (): AaveAccumulatorConfiguration => {
         throw Error("Missing wallet private key in env file!");
     }
     const cronPattern = process.env.CRON_PATTERN;
-    const createEventLog = process.env.CREATE_EVENT_LOG == "true";
+    const createEventLog = process.env.CREATE_EVENT_LOG === "true";
 
     return {
         incentivesContract: aavePolygonIncentivesContract,
