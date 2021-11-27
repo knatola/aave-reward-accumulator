@@ -181,6 +181,7 @@ export type TransactionInfo = {
     // Main sequence to accumulate AAVE deposits
     const mainSequence = async (): Promise<string> => {
         // First claim rewards
+        pinoConsole.debug("Claiming rewards from AAVE");
         const claimTx = await createRewardsClaimTx(
             depositAtokenAddress,
             configuration
@@ -193,12 +194,17 @@ export type TransactionInfo = {
         );
 
         // Calculate needed values for the token swap
+        const rewardsBalance = await awardTokenContract.methods
+            .balanceOf(configuration.walletAddress)
+            .call({ from: configuration.walletAddress });
+
         const quote = await quickSwapRouterContract.methods
             .getAmountsOut(rewardsBalance, [
                 awardTokenAddress,
                 depositTokenAddress,
             ])
             .call();
+
         const amountOut = parseInt(quote[1]) - MIN_OUT_FIXER_AMOUNT;
         const deadline = Date.now() + 5 * MINUTE_IN_MILLIS;
         // Create erc20 approval to swap the reward tokens for depositable tokens
@@ -226,11 +232,11 @@ export type TransactionInfo = {
         await sendSignedTransaction(swapTx, web3, TX_TYPE.SWAP, configuration);
 
         // Create erc20 approval for the deposit
-        const rewardsTokenBalance = await depositTokenContract.methods
+        const depositTokenBalance = await depositTokenContract.methods
             .balanceOf(configuration.walletAddress)
             .call({ from: configuration.walletAddress });
         const secondApprovalTx = await createApproveErcTransaction(
-            rewardsTokenBalance,
+            depositTokenBalance,
             configuration.lendingPoolContractAddress,
             depositTokenContract,
             depositTokenAddress
@@ -245,7 +251,7 @@ export type TransactionInfo = {
         // Do deposit
         const depositTx = await createDepositTx(
             depositTokenAddress,
-            rewardsTokenBalance
+            depositTokenBalance
         );
         await sendSignedTransaction(
             depositTx,
@@ -253,7 +259,7 @@ export type TransactionInfo = {
             TX_TYPE.DEPOSIT,
             configuration
         );
-        return rewardsTokenBalance;
+        return depositTokenBalance;
     };
 
     const httpProvider = new Web3.providers.HttpProvider(
@@ -315,9 +321,6 @@ export type TransactionInfo = {
         tokenABI as any,
         depositTokenAddress
     );
-    const rewardsBalance = await awardTokenContract.methods
-        .balanceOf(configuration.walletAddress)
-        .call({ from: configuration.walletAddress });
 
     try {
         if (singleRun) {
@@ -327,7 +330,9 @@ export type TransactionInfo = {
             pinoConsole.info("Starting cron job");
             cron.schedule(configuration.cronPattern, () => {
                 mainSequence().then((rewards) =>
-                    pinoConsole.info(`Deposited ${rewards}`)
+                    pinoConsole.info(
+                        `Deposited ${rewards} ${configuration.depositToken}`
+                    )
                 );
             });
         }
@@ -384,7 +389,6 @@ const sendSignedTransaction = async (
     txType: TX_TYPE,
     config: AaveAccumulatorConfiguration
 ) => {
-    pinoConsole.info(`Sending signed transaction: ${signed.transactionHash}`);
     let transactionPending = true;
     web3.eth.sendSignedTransaction(signed.rawTransaction).on("error", (e) => {
         pinoConsole.error(
