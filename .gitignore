@@ -8,3 +8,4 @@ events.csv
 .vscode
 node_modules/
 dist
+coverage/

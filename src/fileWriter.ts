@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { TransactionInfo } from ".";
+import { TransactionInfo } from "./transactions";
 import { AaveAccumulatorConfiguration } from "./config";
 
 const FILE_NAME = "events.csv";

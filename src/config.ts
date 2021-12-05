@@ -50,6 +50,7 @@ export const getConfig = (): AaveAccumulatorConfiguration => {
         createEventLog,
     };
 };
+
 export type AaveAccumulatorConfiguration = {
     incentivesContract: string;
     dataProviderContract: string;
