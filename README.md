@@ -10,7 +10,7 @@ This node js app can be used to automatically accumulate your [Aave](https://aav
 
 ### Why?
 
-To automatically put the mined award tokens from Aave back to "work" gaining interest and turbocharge your APY. The award tokens are easily just left standing unclaimed, but the cheap transaction costs of the polygon chain allow for very frequent claiming and re-depositing of assets in the Aave protocl.
+To automatically put the mined award tokens from Aave back to "work" gaining interest and turbocharge your APY. The award tokens are easily just left standing unclaimed, but the cheap transaction costs of the polygon chain allow for very frequent claiming and re-depositing of assets in the Aave protocol.
 
 ## How does it work
 
