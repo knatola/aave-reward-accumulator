@@ -31,6 +31,15 @@ export const createSignedTransaction = async (
     );
     const gasPriceJson = gasPriceJsonRes.data;
     const gasPriceAsGwei = gasPriceJson.standard;
+
+    if (
+        configuration.gasPriceLimit &&
+        gasPriceAsGwei > configuration.gasPriceLimit
+    ) {
+        throw Error(
+            `Standard gas price: ${gasPriceAsGwei} is over configuration limit, skipping transaction!`
+        );
+    }
     const gasPrice = web3.utils
         .toWei(gasPriceAsGwei.toString(), "gwei")
         .toString();
