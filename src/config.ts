@@ -33,6 +33,9 @@ export const getConfig = (): AaveAccumulatorConfiguration => {
     }
     const cronPattern = process.env.CRON_PATTERN;
     const createEventLog = process.env.CREATE_EVENT_LOG === "true";
+    const gasPriceLimit = process.env.GAS_PRICE_LIMIT
+        ? parseInt(process.env.GAS_PRICE_LIMIT)
+        : undefined;
 
     return {
         incentivesContract: aavePolygonIncentivesContract,
@@ -48,6 +51,7 @@ export const getConfig = (): AaveAccumulatorConfiguration => {
         awardToken,
         cronPattern,
         createEventLog,
+        gasPriceLimit,
     };
 };
 
@@ -65,4 +69,5 @@ export type AaveAccumulatorConfiguration = {
     depositToken: string;
     cronPattern: string;
     createEventLog: boolean;
+    gasPriceLimit: number | undefined;
 };
